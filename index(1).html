@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Spend Tracker</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#1a1a1a;max-width:480px;margin:0 auto;min-height:100vh}
+header{background:#1a73e8;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+header h1{font-size:18px;font-weight:600}
+header span{font-size:12px;opacity:0.85;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav{display:flex;background:#fff;border-bottom:1px solid #e0e0e0;position:sticky;top:52px;z-index:9}
+.nav button{flex:1;padding:12px 4px;font-size:12px;background:none;border:none;border-bottom:3px solid transparent;color:#666;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:2px}
+.nav button.active{border-bottom-color:#1a73e8;color:#1a73e8;font-weight:600}
+.nav button .icon{font-size:18px}
+.screen{display:none;padding:12px;padding-bottom:80px}
+.screen.active{display:block}
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.field-label{font-size:12px;color:#666;margin-bottom:4px;margin-top:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.3px}
+.field-label:first-child{margin-top:0}
+input,select{width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:15px;background:#fff;color:#1a1a1a;font-family:inherit;-webkit-appearance:none}
+input:focus,select:focus{outline:none;border-color:#1a73e8}
+.btn{width:100%;padding:13px;border-radius:10px;font-size:15px;cursor:pointer;font-family:inherit;font-weight:600;border:none;margin-top:10px}
+.btn-primary{background:#1a73e8;color:#fff}
+.btn-primary:active{background:#1557b0}
+.btn-danger{background:#fff;color:#d32f2f;border:1.5px solid #d32f2f}
+.btn-sm{display:inline-flex;align-items:center;padding:6px 12px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;border:1.5px solid #e0e0e0;background:#fff;color:#444;font-weight:500}
+.btn-sm-danger{border-color:#ffcdd2;color:#d32f2f;background:#fff8f8}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.metric{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.metric-label{font-size:11px;color:#888;margin-bottom:4px;font-weight:500;text-transform:uppercase}
+.metric-val{font-size:22px;font-weight:700;color:#1a1a1a}
+.cat-row{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0}
+.cat-row:last-child{border-bottom:none}
+.bar-wrap{height:6px;background:#f0f0f0;border-radius:3px;margin-top:3px;overflow:hidden;flex:1}
+.bar-fill{height:100%;border-radius:3px;background:#1a73e8}
+.entry-row{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0}
+.entry-row:last-child{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;background:#e8f0fe;color:#1a73e8;font-weight:500}
+.month-tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.month-tabs::-webkit-scrollbar{display:none}
+.month-tab{padding:7px 14px;border:1.5px solid #e0e0e0;border-radius:20px;font-size:13px;background:#fff;color:#666;cursor:pointer;white-space:nowrap;font-family:inherit;font-weight:500}
+.month-tab.active{background:#1a73e8;color:#fff;border-color:#1a73e8}
+.empty{text-align:center;padding:2rem;color:#aaa;font-size:14px}
+.section-title{font-size:12px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px}
+.msg-box{font-size:13px;border-radius:8px;padding:8px 12px;margin-top:8px;display:none}
+.msg-success{background:#f1f8e9;color:#2e7d32}
+.msg-error{background:#fff8f8;color:#d32f2f}
+.cat-manage-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f5f5f5}
+.cat-manage-row:last-child{border-bottom:none}
+.split-hint{font-size:11px;color:#999;margin-top:3px}
+.login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem;text-align:center;background:#f5f5f5}
+.login-screen h2{font-size:22px;font-weight:700;margin-bottom:8px;color:#1a1a1a}
+.login-screen p{font-size:14px;color:#666;margin-bottom:2rem;line-height:1.6}
+.login-logo{font-size:48px;margin-bottom:1rem}
+.sync-status{font-size:11px;color:#fff;opacity:0.8;background:rgba(0,0,0,0.15);padding:2px 8px;border-radius:10px}
+.syncing{opacity:0.6}
+canvas{max-width:100%;margin-top:8px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-logo">💳</div>
+  <h2>Spend Tracker</h2>
+  <p>Track your card-wise monthly spends.<br>Sign in with Google to sync across all your devices.</p>
+  <div id="g_id_onload"
+    data-client_id="YOUR_CLIENT_ID_HERE"
+    data-callback="handleCredential"
+    data-auto_prompt="false">
+  </div>
+  <div class="g_id_signin"
+    data-type="standard"
+    data-size="large"
+    data-theme="outline"
+    data-text="sign_in_with"
+    data-shape="rectangular"
+    data-logo_alignment="left">
+  </div>
+  <p style="font-size:12px;color:#aaa;margin-top:1.5rem">Your data is stored in your own Google Sheet</p>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app" style="display:none">
+  <header>
+    <h1>💳 Spend Tracker</h1>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+      <span id="header-user"></span>
+      <span class="sync-status" id="sync-status">Ready</span>
+    </div>
+  </header>
+
+  <div class="nav">
+    <button class="active" onclick="showTab('add',this)">
+      <span class="icon">➕</span>Add
+    </button>
+    <button onclick="showTab('summary',this)">
+      <span class="icon">📊</span>Summary
+    </button>
+    <button onclick="showTab('entries',this)">
+      <span class="icon">📋</span>Entries
+    </button>
+    <button onclick="showTab('settings',this)">
+      <span class="icon">⚙️</span>Settings
+    </button>
+  </div>
+
+  <!-- ADD TAB -->
+  <div id="tab-add" class="screen active">
+    <div class="card">
+      <div class="field-label">Month</div>
+      <select id="inp-month"></select>
+      <div class="field-label">Date</div>
+      <input id="inp-date" type="date">
+      <div class="field-label">Category</div>
+      <select id="inp-cat"></select>
+      <div class="field-label">Item name</div>
+      <input id="inp-name" type="text" placeholder="e.g. petrol, groceries, swiggy…">
+      <div class="field-label">Amount (₹)</div>
+      <input id="inp-amt" type="text" inputmode="decimal" placeholder="500  or  1000+500">
+      <div class="split-hint">Tip: use + to split amounts e.g. 1000+500</div>
+      <button class="btn btn-primary" onclick="addEntry()">✓ Add Entry</button>
+      <div class="msg-box" id="add-msg"></div>
+    </div>
+  </div>
+
+  <!-- SUMMARY TAB -->
+  <div id="tab-summary" class="screen">
+    <div id="month-tabs-summary" class="month-tabs"></div>
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">Total spent</div>
+        <div class="metric-val" id="s-total">₹0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Entries</div>
+        <div class="metric-val" id="s-count">0</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">By category</div>
+      <div id="s-cats"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Chart</div>
+      <canvas id="chart-canvas" height="220"></canvas>
+      <div id="chart-legend" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <!-- ENTRIES TAB -->
+  <div id="tab-entries" class="screen">
+    <div id="month-tabs-entries" class="month-tabs"></div>
+    <div class="card">
+      <div id="entries-list"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS TAB -->
+  <div id="tab-settings" class="screen">
+    <div class="card">
+      <div class="section-title">Manage categories</div>
+      <div id="cat-list"></div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <input id="new-cat-inp" type="text" placeholder="New category…" style="flex:1">
+        <button class="btn-sm" onclick="addCategory()" style="white-space:nowrap">+ Add</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">Account</div>
+      <p style="font-size:13px;color:#555;margin-bottom:10px" id="settings-user"></p>
+      <button class="btn btn-danger" onclick="signOut()">Sign out</button>
+    </div>
+    <div class="card">
+      <div class="section-title">Data</div>
+      <p style="font-size:13px;color:#888;margin-bottom:10px">All data is saved in your Google Sheet automatically.</p>
+      <button class="btn btn-danger" onclick="confirmClear()">🗑 Clear all data</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+var CLIENT_ID = 'YOUR_CLIENT_ID_HERE';
+var SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
+var SHEET_NAME = 'SpendTracker';
+var CATS_SHEET = 'Categories';
+var DEFAULT_CATS = ['HDFC 0302','HDFC 0048','OneCard','Other spends','Others'];
+var COLORS = ['#1a73e8','#0f9d58','#e64235','#f9ab00','#9c27b0','#00acc1','#ef6c00'];
+
+var accessToken = null;
+var sheetId = null;
+var userEmail = '';
+var entries = [];
+var cats = DEFAULT_CATS.slice();
+var summaryMonth = getCurrentMonth();
+var entriesMonth = getCurrentMonth();
+var chartInst = null;
+var tokenExpiry = null;
+
+// Try restore session from localStorage
+function restoreSession(){
+  var saved = localStorage.getItem('sc_session');
+  if(!saved) return false;
+  try{
+    var s = JSON.parse(saved);
+    if(s.expiry && Date.now() < s.expiry){
+      accessToken = s.token;
+      userEmail = s.email;
+      tokenExpiry = s.expiry;
+      document.getElementById('header-user').textContent = s.name||s.email;
+      document.getElementById('settings-user').textContent = 'Signed in as: '+s.email;
+      return true;
+    }
+  }catch(e){}
+  localStorage.removeItem('sc_session');
+  return false;
+}
+function saveSession(token, email, name, expiresIn){
+  var expiry = Date.now() + (expiresIn||3600)*1000 - 60000;
+  localStorage.setItem('sc_session', JSON.stringify({token:token, email:email, name:name, expiry:expiry}));
+  tokenExpiry = expiry;
+}
+function clearSession(){
+  localStorage.removeItem('sc_session');
+}
+
+function getCurrentMonth(){
+  var d=new Date();
+  return d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0');
+}
+function monthLabel(m){
+  var p=m.split('-');
+  var n=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return n[parseInt(p[1])-1]+' '+p[0];
+}
+function getMonths(){
+  var ms={};
+  ms[getCurrentMonth()]=1;
+  entries.forEach(function(e){ms[e.month]=1});
+  return Object.keys(ms).sort().reverse();
+}
+function parseAmt(s){
+  if(!s)return 0;
+  return s.split('+').reduce(function(a,b){return a+(parseFloat(b.trim())||0)},0);
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function formatDate(d){
+  if(!d)return '';
+  var p=d.split('-');
+  var n=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return p[2]+' '+n[parseInt(p[1])-1];
+}
+function setSyncStatus(msg,busy){
+  var el=document.getElementById('sync-status');
+  el.textContent=msg;
+  document.getElementById('main-app').classList.toggle('syncing',!!busy);
+}
+
+// GOOGLE SIGN IN
+function handleCredential(response){
+  var payload = JSON.parse(atob(response.credential.split('.')[1]));
+  userEmail = payload.email;
+  window._pendingName = payload.name;
+  document.getElementById('header-user').textContent = payload.name||userEmail;
+  document.getElementById('settings-user').textContent = 'Signed in as: '+userEmail;
+  getAccessToken();
+}
+
+function getAccessToken(){
+  var client = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: function(resp){
+      if(resp.error){showLoginError(resp.error);return;}
+      accessToken = resp.access_token;
+      saveSession(resp.access_token, userEmail, window._pendingName||userEmail, resp.expires_in||3600);
+      document.getElementById('login-screen').style.display='none';
+      document.getElementById('main-app').style.display='block';
+      initApp();
+    }
+  });
+  client.requestAccessToken();
+}
+
+function signOut(){
+  google.accounts.id.disableAutoSelect();
+  clearSession();
+  accessToken=null;sheetId=null;entries=[];
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+}
+
+function showLoginError(msg){
+  alert('Sign in error: '+msg+'\nPlease try again.');
+}
+
+// SHEETS API HELPERS
+function sheetsApi(method, path, body){
+  return fetch('https://sheets.googleapis.com/v4/spreadsheets'+path, {
+    method: method,
+    headers: {'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},
+    body: body ? JSON.stringify(body) : undefined
+  }).then(function(r){return r.json()});
+}
+function driveApi(method, path, body){
+  return fetch('https://www.googleapis.com/drive/v3'+path, {
+    method: method,
+    headers: {'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},
+    body: body ? JSON.stringify(body) : undefined
+  }).then(function(r){return r.json()});
+}
+
+// INIT — find or create sheet
+function initApp(){
+  setSyncStatus('Connecting…',true);
+  refreshUI();
+  driveApi('GET','/files?q=name%3D%22SpendTrackerData%22+and+mimeType%3D%22application%2Fvnd.google-apps.spreadsheet%22+and+trashed%3Dfalse&fields=files(id,name)')
+  .then(function(res){
+    if(res.files && res.files.length>0){
+      sheetId = res.files[0].id;
+      loadData();
+    } else {
+      createSheet();
+    }
+  }).catch(function(){setSyncStatus('Error',false)});
+}
+
+function createSheet(){
+  setSyncStatus('Creating sheet…',true);
+  sheetsApi('POST','',{
+    properties:{title:'SpendTrackerData'},
+    sheets:[
+      {properties:{title:SHEET_NAME}},
+      {properties:{title:CATS_SHEET}}
+    ]
+  }).then(function(res){
+    sheetId=res.spreadsheetId;
+    return sheetsApi('PUT','/'+sheetId+'/values/'+CATS_SHEET+'!A1?valueInputOption=RAW',{
+      values: cats.map(function(c){return [c]})
+    });
+  }).then(function(){
+    return sheetsApi('PUT','/'+sheetId+'/values/'+SHEET_NAME+'!A1?valueInputOption=RAW',{
+      values:[['ID','Month','Date','Category','Item','AmountStr','Amount']]
+    });
+  }).then(function(){
+    setSyncStatus('Ready',false);
+    refreshUI();
+  }).catch(function(){setSyncStatus('Error',false)});
+}
+
+function loadData(){
+  setSyncStatus('Loading…',true);
+  Promise.all([
+    sheetsApi('GET','/'+sheetId+'/values/'+SHEET_NAME+'!A2:G'),
+    sheetsApi('GET','/'+sheetId+'/values/'+CATS_SHEET+'!A1:A')
+  ]).then(function(results){
+    var rows = results[0].values||[];
+    entries = rows.map(function(r){
+      return {id:r[0],month:r[1],date:r[2],cat:r[3],name:r[4],amtStr:r[5],amt:parseFloat(r[6])||0};
+    });
+    var catRows = results[1].values||[];
+    if(catRows.length>0) cats = catRows.map(function(r){return r[0]}).filter(Boolean);
+    setSyncStatus('Synced',false);
+    refreshUI();
+  }).catch(function(){setSyncStatus('Error',false)});
+}
+
+function saveEntriesToSheet(){
+  setSyncStatus('Saving…',true);
+  var values = [['ID','Month','Date','Category','Item','AmountStr','Amount']];
+  entries.forEach(function(e){
+    values.push([e.id,e.month,e.date,e.cat,e.name,e.amtStr,e.amt]);
+  });
+  sheetsApi('PUT','/'+sheetId+'/values/'+SHEET_NAME+'!A1?valueInputOption=RAW',{values:values})
+  .then(function(){setSyncStatus('Synced ✓',false)})
+  .catch(function(){setSyncStatus('Save error!',false)});
+}
+
+function saveCatsToSheet(){
+  sheetsApi('PUT','/'+sheetId+'/values/'+CATS_SHEET+'!A1?valueInputOption=RAW',{
+    values: cats.map(function(c){return [c]})
+  });
+}
+
+// APP LOGIC
+function addEntry(){
+  if(!sheetId){showMsg('Still connecting, please wait…','error');return;}
+  var month=document.getElementById('inp-month').value;
+  var date=document.getElementById('inp-date').value;
+  var cat=document.getElementById('inp-cat').value;
+  var name=document.getElementById('inp-name').value.trim();
+  var amtStr=document.getElementById('inp-amt').value.trim();
+  var amt=parseAmt(amtStr);
+  if(!cat){showMsg('Please select a category','error');return;}
+  if(!date){showMsg('Please select a date','error');return;}
+  if(!name){showMsg('Please enter item name','error');return;}
+  if(!amt||amt<=0){showMsg('Please enter a valid amount','error');return;}
+  var entry={id:Date.now().toString(),month:month,date:date,cat:cat,name:name,amtStr:amtStr,amt:amt};
+  entries.push(entry);
+  document.getElementById('inp-name').value='';
+  document.getElementById('inp-amt').value='';
+  showMsg('✓ Added ₹'+Math.round(amt).toLocaleString('en-IN')+' under '+cat,'success');
+  saveEntriesToSheet();
+  refreshUI();
+}
+
+function deleteEntry(id){
+  if(!confirm('Delete this entry?'))return;
+  entries=entries.filter(function(e){return e.id!==id});
+  saveEntriesToSheet();
+  refreshUI();
+}
+
+function addCategory(){
+  var v=document.getElementById('new-cat-inp').value.trim();
+  if(!v)return;
+  if(cats.indexOf(v)>-1){alert('Already exists');return;}
+  cats.push(v);
+  saveCatsToSheet();
+  document.getElementById('new-cat-inp').value='';
+  renderCatSelect();
+  renderCatSettings();
+}
+
+function deleteCat(i){
+  if(!confirm('Remove "'+cats[i]+'"?'))return;
+  cats.splice(i,1);
+  saveCatsToSheet();
+  renderCatSelect();
+  renderCatSettings();
+}
+
+function confirmClear(){
+  if(confirm('Delete ALL entries? This cannot be undone.')){
+    entries=[];
+    saveEntriesToSheet();
+    refreshUI();
+  }
+}
+
+function showMsg(text,type){
+  var el=document.getElementById('add-msg');
+  el.textContent=text;
+  el.className='msg-box '+(type==='success'?'msg-success':'msg-error');
+  el.style.display='block';
+  setTimeout(function(){el.style.display='none'},3000);
+}
+
+// RENDER
+function renderMonthSelect(){
+  var el=document.getElementById('inp-month');
+  var cur=el.value||getCurrentMonth();
+  el.innerHTML='';
+  getMonths().forEach(function(m){
+    var o=document.createElement('option');
+    o.value=m;o.textContent=monthLabel(m);
+    if(m===cur)o.selected=true;
+    el.appendChild(o);
+  });
+}
+function renderCatSelect(){
+  var el=document.getElementById('inp-cat');
+  var cur=el.value;
+  el.innerHTML='';
+  cats.forEach(function(c){
+    var o=document.createElement('option');
+    o.value=c;o.textContent=c;
+    if(c===cur)o.selected=true;
+    el.appendChild(o);
+  });
+}
+function renderMonthTabs(cid,current,onSelect){
+  var el=document.getElementById(cid);
+  el.innerHTML='';
+  getMonths().forEach(function(m){
+    var b=document.createElement('button');
+    b.className='month-tab'+(m===current?' active':'');
+    b.textContent=monthLabel(m);
+    b.onclick=function(){onSelect(m)};
+    el.appendChild(b);
+  });
+}
+function renderCatSettings(){
+  var el=document.getElementById('cat-list');
+  el.innerHTML='';
+  if(cats.length===0){el.innerHTML='<div class="empty">No categories</div>';return;}
+  cats.forEach(function(c,i){
+    var row=document.createElement('div');
+    row.className='cat-manage-row';
+    row.innerHTML='<span style="flex:1;font-size:14px">'+esc(c)+'</span>'+
+      '<button class="btn-sm btn-sm-danger" onclick="deleteCat('+i+')">🗑 Remove</button>';
+    el.appendChild(row);
+  });
+}
+function renderSummary(){
+  renderMonthTabs('month-tabs-summary',summaryMonth,function(m){summaryMonth=m;renderSummary()});
+  var filtered=entries.filter(function(e){return e.month===summaryMonth});
+  var total=filtered.reduce(function(a,e){return a+e.amt},0);
+  document.getElementById('s-total').textContent='₹'+Math.round(total).toLocaleString('en-IN');
+  document.getElementById('s-count').textContent=filtered.length;
+  var catTotals={};
+  filtered.forEach(function(e){catTotals[e.cat]=(catTotals[e.cat]||0)+e.amt});
+  var el=document.getElementById('s-cats');
+  var sorted=Object.entries(catTotals).sort(function(a,b){return b[1]-a[1]});
+  if(sorted.length===0){el.innerHTML='<div class="empty">No entries this month</div>';if(chartInst){chartInst.destroy();chartInst=null;}document.getElementById('chart-legend').innerHTML='';return;}
+  el.innerHTML='';
+  sorted.forEach(function(pair,i){
+    var pct=total>0?Math.round(pair[1]/total*100):0;
+    var row=document.createElement('div');
+    row.className='cat-row';
+    row.innerHTML='<div style="flex:1;margin-right:10px">'+
+      '<div style="font-size:14px;font-weight:500">'+esc(pair[0])+'</div>'+
+      '<div class="bar-wrap"><div class="bar-fill" style="width:'+pct+'%;background:'+COLORS[i%COLORS.length]+'"></div></div></div>'+
+      '<div style="text-align:right;min-width:80px">'+
+      '<div style="font-size:15px;font-weight:700">₹'+Math.round(pair[1]).toLocaleString('en-IN')+'</div>'+
+      '<div style="font-size:11px;color:#888">'+pct+'%</div></div>';
+    el.appendChild(row);
+  });
+  renderChart(sorted);
+}
+function renderChart(sorted){
+  if(typeof Chart==='undefined')return;
+  var canvas=document.getElementById('chart-canvas');
+  if(chartInst){chartInst.destroy();chartInst=null;}
+  chartInst=new Chart(canvas,{
+    type:'doughnut',
+    data:{
+      labels:sorted.map(function(p){return p[0]}),
+      datasets:[{data:sorted.map(function(p){return Math.round(p[1])}),
+        backgroundColor:sorted.map(function(_,i){return COLORS[i%COLORS.length]}),
+        borderWidth:2,borderColor:'#fff'}]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},cutout:'60%'}
+  });
+  var leg=document.getElementById('chart-legend');
+  leg.innerHTML='';
+  sorted.forEach(function(pair,i){
+    var item=document.createElement('div');
+    item.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:12px';
+    item.innerHTML='<span style="width:10px;height:10px;border-radius:2px;background:'+COLORS[i%COLORS.length]+';flex-shrink:0"></span>'+
+      '<span style="flex:1;color:#555">'+esc(pair[0])+'</span>'+
+      '<span style="font-weight:600">₹'+Math.round(pair[1]).toLocaleString('en-IN')+'</span>';
+    leg.appendChild(item);
+  });
+}
+function renderEntries(){
+  renderMonthTabs('month-tabs-entries',entriesMonth,function(m){entriesMonth=m;renderEntries()});
+  var filtered=entries.filter(function(e){return e.month===entriesMonth}).slice().reverse();
+  var el=document.getElementById('entries-list');
+  if(filtered.length===0){el.innerHTML='<div class="empty">No entries for this month</div>';return;}
+  el.innerHTML='';
+  filtered.forEach(function(e){
+    var row=document.createElement('div');
+    row.className='entry-row';
+    row.innerHTML='<div style="flex:1">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between">'+
+      '<div style="font-size:15px;font-weight:500">'+esc(e.name)+'</div>'+
+      (e.date?'<span style="font-size:11px;color:#aaa">'+formatDate(e.date)+'</span>':'')+
+      '</div>'+
+      '<div style="margin-top:3px;display:flex;align-items:center;gap:6px">'+
+      '<span class="tag">'+esc(e.cat)+'</span>'+
+      (e.amtStr&&e.amtStr.indexOf('+')>-1?'<span style="font-size:11px;color:#aaa">'+esc(e.amtStr)+'</span>':'')+
+      '</div></div>'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-left:8px">'+
+      '<div style="font-size:16px;font-weight:700">₹'+Math.round(e.amt).toLocaleString('en-IN')+'</div>'+
+      '<button class="btn-sm btn-sm-danger" onclick="deleteEntry(\''+e.id+'\')">🗑</button></div>';
+    el.appendChild(row);
+  });
+}
+
+function showTab(name,btn){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+  document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('active')});
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='summary')renderSummary();
+  if(name==='entries')renderEntries();
+}
+
+function refreshUI(){
+  var di=document.getElementById('inp-date');
+  if(di&&!di.value){var td=new Date();di.value=td.getFullYear()+'-'+(td.getMonth()+1).toString().padStart(2,'0')+'-'+td.getDate().toString().padStart(2,'0');}
+  renderMonthSelect();
+  renderCatSelect();
+  renderSummary();
+  renderEntries();
+  renderCatSettings();
+}
+
+// Auto restore session on page load
+window.addEventListener('load', function(){
+  if(restoreSession()){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('main-app').style.display='block';
+    initApp();
+  }
+});
+</script>
+</body>
+</html>
